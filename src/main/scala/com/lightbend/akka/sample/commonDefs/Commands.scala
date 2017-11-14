@@ -2,7 +2,7 @@ package com.lightbend.akka.sample.commonDefs
 
 sealed trait CartCommand
 
-object CartCommands {
+object Commands {
 
   final case class AddItem(item: Item) extends CartCommand
 

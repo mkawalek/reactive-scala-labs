@@ -1,7 +1,7 @@
 package com.lightbend.akka.sample.basic
 
 import akka.actor.{ActorRef, ActorSystem, Props}
-import com.lightbend.akka.sample.commonDefs.CartCommands._
+import com.lightbend.akka.sample.commonDefs.Commands._
 import com.lightbend.akka.sample.commonDefs.CheckoutCommands.{DeliveryMethodSelected, PaymentReceived, PaymentSelected}
 import com.lightbend.akka.sample.commonDefs.{CheckoutCommands, Item}
 

@@ -1,28 +1,48 @@
 package com.lightbend.akka.sample.basic.normal.checkout
 
-import akka.actor.{Actor, ActorRef, Props, Timers}
+import akka.actor.{ActorRef, Props, Timers}
+import akka.persistence.{PersistentActor, RecoveryCompleted}
 import com.lightbend.akka.sample.basic.normal.customer.CustomerCommands.PaymentServiceStarted
 import com.lightbend.akka.sample.basic.normal.payment.PaymentActor
-import com.lightbend.akka.sample.commonDefs.CartCommands.CheckoutClosed
 import com.lightbend.akka.sample.commonDefs.CheckoutCommands.{Cancel, DeliveryMethodSelected, PaymentReceived, PaymentSelected}
+import com.lightbend.akka.sample.commonDefs.CheckoutEvent
+import com.lightbend.akka.sample.commonDefs.Commands.CheckoutClosed
+import com.lightbend.akka.sample.commonDefs.Events._
 
 import scala.concurrent.duration._
 
-class CheckoutActor(parent: ActorRef) extends Actor with Timers {
+class CheckoutActor(id: String, parent: ActorRef) extends PersistentActor with Timers {
 
-  override def receive = selectingDelivery
+  override def receiveRecover = {
+    case RecoveryCompleted => println("completed recovery")
+    case event: CheckoutEvent => handleEvent(event)
+  }
+
+  override def receiveCommand = selectingDelivery
+
+  override def persistenceId = id
+
+  private def handleEvent(event: Any) = event match {
+    case DeliveryMethodSelectedEvent => context.become(selectingPaymentMethod)
+
+    case PaymentServiceStartedEvent => context.become(processingPayment)
+
+    case CheckoutClosedEvent => context.become(closed)
+
+    case CancelledEvent => context.become(cancelled)
+  }
 
   private def selectingDelivery: Receive = {
     println("IN SELECTING DELIVERY")
     timers.startSingleTimer(CheckoutTimer, CheckoutTimerExpired, 3 seconds)
 
-
     {
-      case DeliveryMethodSelected => context.become(selectingPaymentMethod)
+      case DeliveryMethodSelected =>
+        persist(DeliveryMethodSelectedEvent)(handleEvent)
 
-      case CheckoutTimerExpired => context.become(cancelled)
+      case CheckoutTimerExpired => persist(CancelledEvent)(handleEvent)
 
-      case Cancel => context.become(cancelled)
+      case Cancel => persist(CancelledEvent)(handleEvent)
     }
   }
 
@@ -31,12 +51,12 @@ class CheckoutActor(parent: ActorRef) extends Actor with Timers {
 
     {
       case PaymentSelected =>
-        sender() ! PaymentServiceStarted(context.actorOf(Props(new PaymentActor())))
-        context.become(processingPayment)
+        persist(PaymentServiceStartedEvent)(handleEvent)
+        deferAsync(id)(_ => sender() ! PaymentServiceStarted(context.actorOf(Props(new PaymentActor()))))
 
-      case CheckoutTimerExpired => context.become(cancelled)
+      case CheckoutTimerExpired => persist(CancelledEvent)(handleEvent)
 
-      case Cancel => context.become(cancelled)
+      case Cancel => persist(CancelledEvent)(handleEvent)
     }
   }
 
@@ -48,12 +68,12 @@ class CheckoutActor(parent: ActorRef) extends Actor with Timers {
     {
       case PaymentReceived =>
         println("CLOSED")
-        parent ! CheckoutClosed
-        context.become(closed)
+        persist(CheckoutClosedEvent)(handleEvent)
+        deferAsync(id)(_ => parent ! CheckoutClosed)
 
-      case PaymentTimerExpired => context.become(cancelled)
+      case PaymentTimerExpired => persist(CancelledEvent)(handleEvent)
 
-      case Cancel => context.become(cancelled)
+      case Cancel => persist(CancelledEvent)(handleEvent)
     }
   }
 

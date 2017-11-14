@@ -2,12 +2,16 @@ package com.lightbend.akka.sample.basic.fsm.cart
 
 import akka.actor.{ActorSystem, Props}
 import com.lightbend.akka.sample.basic.Commons._
+import com.lightbend.akka.sample.basic.normal.cart.CartManager
+import com.typesafe.config.ConfigFactory
 
 object Main extends App {
 
-  private implicit val system = ActorSystem()
+  val config = ConfigFactory.load("app.conf")
 
-  private val actor = system.actorOf(Props(new CartFSM))
+  private implicit val system = ActorSystem("test", config)
+
+  private val actor = system.actorOf(Props(new CartManager("1")))
 
   testCart(actor)
 

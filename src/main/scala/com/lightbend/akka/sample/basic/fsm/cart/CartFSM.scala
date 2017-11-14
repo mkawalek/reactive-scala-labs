@@ -1,7 +1,7 @@
 package com.lightbend.akka.sample.basic.fsm.cart
 
 import akka.actor.FSM
-import com.lightbend.akka.sample.commonDefs.CartCommands._
+import com.lightbend.akka.sample.commonDefs.Commands._
 import com.lightbend.akka.sample.basic.fsm.cart.Defs._
 
 import scala.concurrent.duration._

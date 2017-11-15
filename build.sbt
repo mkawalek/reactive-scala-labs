@@ -1,4 +1,3 @@
-
 name := """reactive-scala-labs"""
 
 version := "1.2"

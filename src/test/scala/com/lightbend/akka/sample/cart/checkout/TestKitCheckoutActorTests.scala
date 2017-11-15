@@ -60,7 +60,7 @@ class TestKitCheckoutActorTests extends TestKit(ActorSystem("xD", ConfigFactory.
 
     }
 
-    "recover after system failure" in {
+    "recover after system failure 2" in {
       val id = IdProvider.newId()
       val mockedCart = TestProbe()
       val checkoutActor = mockedCart.childActorOf(Props(new CheckoutActor(id, mockedCart.ref)))
@@ -80,7 +80,7 @@ class TestKitCheckoutActorTests extends TestKit(ActorSystem("xD", ConfigFactory.
 
       Thread sleep 5000
 
-      // should be closed but not after checkout timer but after payment timer
+      // should be cancelled but not after checkout timer but after payment timer
 
     }
 

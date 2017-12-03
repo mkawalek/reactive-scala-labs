@@ -1,5 +1,7 @@
 package com.lightbend.akka.sample.commonDefs
 
+import akka.actor.ActorRef
+
 sealed trait CartEvent
 
 sealed trait CheckoutEvent
@@ -17,6 +19,6 @@ object Events {
 
   case object CheckoutClosedEvent extends CheckoutEvent
 
-  case object PaymentServiceStartedEvent extends CheckoutEvent
+  case class PaymentServiceStartedEvent(actorRef: ActorRef) extends CheckoutEvent
 
 }

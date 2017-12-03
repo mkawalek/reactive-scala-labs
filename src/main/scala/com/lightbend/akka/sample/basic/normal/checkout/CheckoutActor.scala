@@ -1,14 +1,19 @@
 package com.lightbend.akka.sample.basic.normal.checkout
 
-import akka.actor.{ActorRef, Props, Timers}
+import akka.actor.SupervisorStrategy.{Escalate, Restart, Resume}
+import akka.actor.{ActorRef, DeathPactException, OneForOneStrategy, Props, Timers}
+import akka.http.scaladsl.model.IllegalUriException
 import akka.persistence.{PersistentActor, RecoveryCompleted}
+import akka.stream.{AbruptTerminationException, BufferOverflowException, ConnectionException}
 import com.lightbend.akka.sample.basic.normal.customer.CustomerCommands.PaymentServiceStarted
 import com.lightbend.akka.sample.basic.normal.payment.PaymentActor
+import com.lightbend.akka.sample.basic.normal.payment.PaymentCommands.DoPayment
 import com.lightbend.akka.sample.commonDefs.CheckoutCommands.{Cancel, DeliveryMethodSelected, PaymentReceived, PaymentSelected}
 import com.lightbend.akka.sample.commonDefs.CheckoutEvent
 import com.lightbend.akka.sample.commonDefs.Commands.CheckoutClosed
 import com.lightbend.akka.sample.commonDefs.Events._
 
+import scala.concurrent.TimeoutException
 import scala.concurrent.duration._
 
 class CheckoutActor(id: String, parent: ActorRef) extends PersistentActor with Timers {
@@ -18,6 +23,19 @@ class CheckoutActor(id: String, parent: ActorRef) extends PersistentActor with T
     case event: CheckoutEvent => handleEvent(event)
   }
 
+
+  override def supervisorStrategy = OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1 minute, loggingEnabled = true) {
+    case _: IllegalUriException => Resume
+    case _: BufferOverflowException => Restart
+    case _: TimeoutException => Resume
+    case _: AbruptTerminationException => Escalate
+    case _: DeathPactException => Escalate
+    case _: ConnectionException => Resume
+    case _: StackOverflowError => Escalate
+    case _: OutOfMemoryError => Escalate
+    case _: VirtualMachineError => Escalate
+  }
+
   override def receiveCommand = selectingDelivery
 
   override def persistenceId = id
@@ -25,7 +43,9 @@ class CheckoutActor(id: String, parent: ActorRef) extends PersistentActor with T
   private def handleEvent(event: Any) = event match {
     case DeliveryMethodSelectedEvent => context.become(selectingPaymentMethod)
 
-    case PaymentServiceStartedEvent => context.become(processingPayment)
+    case PaymentServiceStartedEvent(ref) =>
+      ref ! DoPayment
+      context.become(processingPayment)
 
     case CheckoutClosedEvent => context.become(closed)
 
@@ -51,8 +71,9 @@ class CheckoutActor(id: String, parent: ActorRef) extends PersistentActor with T
 
     {
       case PaymentSelected =>
-        persist(PaymentServiceStartedEvent)(handleEvent)
-        deferAsync(id)(_ => sender() ! PaymentServiceStarted(context.actorOf(Props(new PaymentActor()))))
+        val ref = context.actorOf(Props(new PaymentActor()))
+        persist(PaymentServiceStartedEvent(ref))(handleEvent)
+        deferAsync(id)(_ => sender() ! PaymentServiceStarted(ref))
 
       case CheckoutTimerExpired => persist(CancelledEvent)(handleEvent)
 

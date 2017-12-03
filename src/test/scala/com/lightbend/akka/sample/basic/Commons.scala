@@ -78,6 +78,11 @@ object Commons {
     cancelledAfterPaymentSelected ! PaymentSelected
 
     cancelledAfterPaymentSelected ! CheckoutCommands.Cancel
+
+    println("TESTING PAYMENT !!!")
+
+
+
   }
 
 }

@@ -4,7 +4,6 @@ import akka.actor.{ActorSystem, Props}
 import akka.stream.ActorMaterializer
 import akka.testkit.TestProbe
 import com.lightbend.akka.sample.basic.Commons._
-import com.lightbend.akka.sample.basic.normal.checkout.CheckoutActor
 import com.lightbend.akka.sample.basic.normal.payment.PaymentService
 import com.lightbend.akka.sample.commonDefs.IdProvider
 import com.typesafe.config.ConfigFactory

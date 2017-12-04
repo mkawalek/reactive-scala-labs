@@ -33,6 +33,10 @@ object Subscribers extends App with Json4sSupport {
   private implicit val serialization = Serialization
   private implicit val formats = DefaultFormats
 
+  System.setProperty("PORT", "7777")
+
+  ClusterUtils.clusterRegion()
+
   val counter = system.actorOf(Props[RequestCounter])
   val printer = system.actorOf(Props[RequestsPrinter])
 

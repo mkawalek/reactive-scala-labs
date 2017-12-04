@@ -29,7 +29,7 @@ class GatlingShooter extends Simulation with StrictLogging {
     )
 
   setUp(basicScenario.inject(
-    constantUsersPerSec(10) during (5 seconds)
+    constantUsersPerSec(200) during (5 seconds)
   ).protocols(httpProtocol))
 
 }
